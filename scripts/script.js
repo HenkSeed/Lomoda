@@ -1,4 +1,7 @@
 const headerSityButton = document.querySelector('.header__city-button');
+const cartListGoods = document.querySelector('.cart__list-goods');
+const cartTotalCost = document.querySelector('.cart__total-cost');
+
 let hash = location.hash.substring(1);
 
 const updateLocation = () => {
@@ -14,6 +17,51 @@ headerSityButton.addEventListener('click', () => {
 	updateLocation();
 });
 updateLocation();
+
+const getLocalStorage = () =>
+	JSON.parse(localStorage.getItem('localStorage-key')) || [];
+
+const setLocalStorage = (data) =>
+	localStorage.setItem('localStorage-key', JSON.stringify(data));
+
+const renderCart = () => {
+	cartListGoods.textContent = '';
+
+	const cartItems = getLocalStorage();
+
+	let totalPrise = 0;
+
+	cartItems.forEach((item, i) => {
+		const tr = document.createElement('tr');
+
+		tr.innerHTML = `
+			<td>${i + 1}</td>
+			<td>${item.brand} ${item.name}</td>
+			${item.color ? `<td>${item.color}</td>` : '<td>-</td>'}
+			${item.size ? `<td>${item.size}</td>` : '<td>-</td>'}
+			<td>${item.cost} &#8381;</td>
+			<td><button class="btn-delete" data-id="${item.id}">&times;</button></td>
+		`;
+		totalPrise += item.cost;
+
+		cartListGoods.append(tr);
+	});
+	cartTotalCost.textContent = totalPrise + ' ₽';
+};
+
+const deleteItemCart = (id) => {
+	const cartItems = getLocalStorage('localStorage-key');
+	const newCartItems = cartItems.filter((item) => item.id !== id);
+	setLocalStorage(newCartItems);
+};
+
+cartListGoods.addEventListener('click', (e) => {
+	if (e.target.matches('.btn-delete')) {
+		deleteItemCart(e.target.dataset.id);
+		renderCart();
+	}
+});
+
 // -----------------------------------------------------------------
 // БЛОКИРОВКА СКРОЛЛА (универсальная функция)
 
@@ -51,6 +99,7 @@ const cartOverlay = document.querySelector('.cart-overlay');
 const cartModalOpen = () => {
 	cartOverlay.classList.add('cart-overlay-open');
 	disableScroll();
+	renderCart();
 };
 
 const cartModalClose = () => {
@@ -198,7 +247,9 @@ try {
 			''
 		);
 
-	const renderCardGood = ([{ photo, brand, name, cost, color, sizes }]) => {
+	const renderCardGood = ([{ id, photo, brand, name, cost, color, sizes }]) => {
+		const data = { brand, name, cost, id };
+
 		cardGoodImage.src = `goods-image/${photo}`;
 		cardGoodImage.alt = `${brand} ${name}`;
 		cardGoodBrand.textContent = brand;
@@ -218,6 +269,14 @@ try {
 		} else {
 			cardGoodSizes.style.display = 'none';
 		}
+		cardGoodBuy.addEventListener('click', () => {
+			if (color) data.color = cardGoodColor.textContent;
+			if (sizes) data.size = cardGoodSizes.textContent;
+
+			const cardData = getLocalStorage();
+			cardData.push(data);
+			setLocalStorage(cardData);
+		});
 	};
 
 	cardGoodselectWrapper.forEach((item) => {
